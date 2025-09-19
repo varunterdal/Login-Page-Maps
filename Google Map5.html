@@ -1,20 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Show Current Location on Map</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Location App</title>
   <style>
-    html, body { height: 100%; margin: 0; font-family: Arial, sans-serif; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(120deg, #4285f4, #34a853);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      width: 350px;
+      padding: 30px;
+      text-align: center;
+      animation: fadeIn 0.6s ease;
+    }
+    h2 { margin-bottom: 20px; color: #333; }
+    .input-box {
+      width: 100%;
+      margin: 12px 0;
+    }
+    .input-box input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      font-size: 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 18px;
+      background: #4285f4;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn:hover { background: #3367d6; }
+    .switch {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+    }
+    .hidden { display: none; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Map page styling */
+    #mapPage {
+      display: none;
+      width: 100%;
+      height: 100vh;
+      flex-direction: column;
+    }
     .controls {
       padding: 10px;
       background: #f4f4f4;
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
       align-items: center;
     }
-    .account-btn {
-      background: #4285f4;
+    .map {
+      flex: 1;
+      width: 100%;
+      border: 0;
+    }
+    .logout-btn {
+      background: #d93025;
       color: white;
       padding: 8px 14px;
       border: none;
@@ -22,52 +89,146 @@
       cursor: pointer;
       font-size: 14px;
     }
-    .map { height: calc(100vh - 50px); width: 100%; border: 0; }
+    .location-btn {
+      background: #34a853;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
-  <!-- Top bar with account button -->
-  <div class="controls">
-    <button class="account-btn" onclick="showCurrentLocation()">👤 Account</button>
+  <!-- LOGIN/REGISTER/VERIFY CONTAINER -->
+  <div class="container" id="authContainer">
+    <!-- Login Form -->
+    <div id="loginForm">
+      <h2>Login</h2>
+      <div class="input-box">
+        <input type="email" id="loginEmail" placeholder="Email" required>
+      </div>
+      <div class="input-box">
+        <input type="password" id="loginPassword" placeholder="Password" required>
+      </div>
+      <button class="btn" onclick="login()">Login</button>
+      <div class="switch" onclick="showRegister()">New user? Register</div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" class="hidden">
+      <h2>Register</h2>
+      <div class="input-box">
+        <input type="text" id="regName" placeholder="Full Name" required>
+      </div>
+      <div class="input-box">
+        <input type="email" id="regEmail" placeholder="Email" required>
+      </div>
+      <div class="input-box">
+        <input type="password" id="regPassword" placeholder="Password" required>
+      </div>
+      <button class="btn" onclick="register()">Register</button>
+      <div class="switch" onclick="showLogin()">Already have an account? Login</div>
+    </div>
+
+    <!-- Verification Form -->
+    <div id="verifyForm" class="hidden">
+      <h2>Verify Account</h2>
+      <div class="input-box">
+        <input type="text" id="verifyCode" placeholder="Enter Verification Code" required>
+      </div>
+      <button class="btn" onclick="verify()">Verify</button>
+      <div class="switch" onclick="showLogin()">Back to Login</div>
+    </div>
   </div>
 
-  <!-- Map container -->
-  <iframe id="gmap" class="map"
-    loading="lazy"
-    allowfullscreen
-    referrerpolicy="no-referrer-when-downgrade">
-  </iframe>
+  <!-- MAP PAGE -->
+  <div id="mapPage">
+    <div class="controls">
+      <div>
+        <button class="location-btn" onclick="showCurrentLocation()">📍 Show My Location</button>
+      </div>
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    </div>
+    <iframe id="gmap" class="map" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </div>
 
   <script>
+    // Auth switching
+    function showRegister() {
+      document.getElementById("loginForm").classList.add("hidden");
+      document.getElementById("registerForm").classList.remove("hidden");
+    }
+    function showLogin() {
+      document.getElementById("registerForm").classList.add("hidden");
+      document.getElementById("verifyForm").classList.add("hidden");
+      document.getElementById("loginForm").classList.remove("hidden");
+    }
+    function showVerify() {
+      document.getElementById("registerForm").classList.add("hidden");
+      document.getElementById("loginForm").classList.add("hidden");
+      document.getElementById("verifyForm").classList.remove("hidden");
+    }
+
+    // Dummy login/register/verify
+    function login() {
+      const email = document.getElementById("loginEmail").value;
+      const pass = document.getElementById("loginPassword").value;
+      if (email && pass) {
+        enterApp();
+      } else {
+        alert("Enter login details");
+      }
+    }
+    function register() {
+      const email = document.getElementById("regEmail").value;
+      if (email) {
+        alert("Registered: " + email);
+        showVerify();
+      }
+    }
+    function verify() {
+      const code = document.getElementById("verifyCode").value;
+      if (code) {
+        alert("Verified successfully!");
+        enterApp();
+      }
+    }
+    function enterApp() {
+      document.getElementById("authContainer").style.display = "none";
+      document.getElementById("mapPage").style.display = "flex";
+      // Load default map
+      document.getElementById("gmap").src = "https://www.google.com/maps?&z=2&output=embed";
+    }
+    function logout() {
+      document.getElementById("mapPage").style.display = "none";
+      document.getElementById("authContainer").style.display = "block";
+      showLogin();
+    }
+
+    // Map functions
     function showCurrentLocation() {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+        alert("Geolocation not supported by your browser.");
         return;
       }
-
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const zoom = 15;
-
-          // Show pointer on the map at current location
           const mapUrl = `https://www.google.com/maps?q=${lat},${lng}&z=${zoom}&output=embed`;
           document.getElementById("gmap").src = mapUrl;
         },
         (err) => {
-          alert("Unable to retrieve your location. Please allow location access.");
+          alert("Unable to retrieve your location. Allow location access.");
           console.error(err);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
-
-    // Load a default location (optional)
-    window.onload = () => {
-      document.getElementById("gmap").src =
-        "https://www.google.com/maps?q=12.9716,77.5946&z=12&output=embed";
-    };
   </script>
 </body>
 </html>
